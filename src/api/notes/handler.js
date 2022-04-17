@@ -1,6 +1,9 @@
+const ClientError = require('../../exceptions/ClientError');
+
 class NotesHandler {
-    constructor(service) {
+    constructor(service, validator) {
         this._service = service;
+        this._validator = validator;
 
         this.postNoteHandler = this.postNoteHandler.bind(this);
         this.getNotesHandler = this.getNotesHandler.bind(this);
@@ -11,6 +14,7 @@ class NotesHandler {
 
     postNoteHandler(request, h) {
         try {
+            this._validator.validateNotePayload(request.payload);
             const { title = 'untitled', body, tags } = request.payload;
 
             const noteId =  this._service.addNote({ title, body, tags });
@@ -26,11 +30,21 @@ class NotesHandler {
             return response;
             
         } catch (error) {
+            if (error instanceof ClientError) {
+                const response = h.response({
+                    status: 'fail',
+                    message: error.message,
+                });
+            response.code(error.statusCode);
+            return response;   
+            }
+
             const response = h.response({
-                status: 'fail',
-                message: error.message,
+                status: 'error',
+                message: 'Internal server error',
             });
-            response.code(400);
+            response.code(500);
+            console.error(error);
             return response;
         }
     }
@@ -57,6 +71,14 @@ class NotesHandler {
                 },
             };   
         } catch (error) {
+            if (error instanceof ClientError) {
+                const response = h.response({
+                    status: 'error',
+                    message: 'Internal server error',
+                });
+                response.code(500);
+                console.error(error);
+            }
             const response = h.response({
                 status: 'fail',
                 message: error.message,
@@ -68,6 +90,7 @@ class NotesHandler {
 
     putNoteByIdHandler(request, h) {
         try {
+            this._validator.validateNotePayload(request.payload);
             const { id } = request.params;
 
             this._service.editNoteById(id, request.payload);
@@ -77,11 +100,21 @@ class NotesHandler {
                 message: 'Note updated successfully',
             };
         } catch (error) {
+            if (error instanceof ClientError) {
+                const response = h.response({
+                    status: 'fail',
+                    message: error.message,
+                });
+                response.code(error.statusCode);
+                return response;
+            }
+            
             const response = h.response({
-                status: 'fail',
-                message: error.message,
+                status: 'error',
+                message: 'Internal server error',
             });
-            response.code(404);
+            response.code(500);
+            console.error(error);
             return response;
         }
         
@@ -97,11 +130,21 @@ class NotesHandler {
             }
             
         } catch (error) {
+            if (error instanceof ClientError) {
+                const response = h.response({
+                    status: 'fail',
+                    message: error.message,
+                });
+                response.code(error.statusCode);
+                return response;
+            }
+
             const response = h.response({
-                status: 'fail',
-                message: 'Cant delete note. Id not found',
+                status: 'error',
+                message: 'Internal server error',
             });
-            response.code(404);
+            response.code(500);
+            console.error(error);
             return response;
         }
     }
