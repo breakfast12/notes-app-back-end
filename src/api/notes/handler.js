@@ -73,17 +73,18 @@ class NotesHandler {
         } catch (error) {
             if (error instanceof ClientError) {
                 const response = h.response({
-                    status: 'error',
-                    message: 'Internal server error',
+                    status: 'fail',
+                    message: error.message,
                 });
-                response.code(500);
-                console.error(error);
+                response.code(error.statusCode);
+                return response;
             }
             const response = h.response({
-                status: 'fail',
-                message: error.message,
+                status: 'error',
+                message: 'Internal server error',
             });
-            response.code(404);
+            response.code(500);
+            console.error(error);
             return response;
         }
     }
